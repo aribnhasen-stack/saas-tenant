@@ -1,0 +1,163 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: saas_tenant_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - DB_HOST=mysql
+      - DB_DATABASE=saas_central
+      - DB_USERNAME=root
+      - DB_PASSWORD=root_password
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MONGODB_URI=mongodb://mongo_user:mongo_password@mongo:27017/saas_analytics?authSource=admin
+      - MEILISEARCH_HOST=http://meilisearch:7700
+      - MEILISEARCH_KEY=masterKey
+      - QUEUE_CONNECTION=redis
+      - CACHE_DRIVER=redis
+      - SESSION_DRIVER=cookie
+    volumes:
+      - ./:/var/www/html
+      - ./docker/php/uploads.ini:/usr/local/etc/php/conf.d/uploads.ini:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
+    networks:
+      - saas_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mysql:
+    image: mysql:8.2
+    container_name: saas_tenant_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: saas_central
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+    ports:
+      - "3306:3306"
+    networks:
+      - saas_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  redis:
+    image: redis:7-alpine
+    container_name: saas_tenant_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - saas_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  mongo:
+    image: mongo:7
+    container_name: saas_tenant_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo_user
+      MONGO_INITDB_ROOT_PASSWORD: mongo_password
+      MONGO_INITDB_DATABASE: saas_analytics
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+    ports:
+      - "27017:27017"
+    networks:
+      - saas_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      timeout: 20s
+      retries: 10
+      interval: 10s
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: saas_tenant_meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: masterKey
+      MEILI_ENV: development
+    volumes:
+      - meilisearch_data:/meili_data
+    ports:
+      - "7700:7700"
+    networks:
+      - saas_network
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: saas_tenant_mailhog
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    networks:
+      - saas_network
+
+  nginx:
+    image: nginx:alpine
+    container_name: saas_tenant_nginx
+    restart: unless-stopped
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    networks:
+      - saas_network
+
+volumes:
+  mysql_data:
+    driver: local
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
+  redis_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+
+networks:
+  saas_network:
+    driver: bridge
