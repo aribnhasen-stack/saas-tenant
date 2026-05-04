@@ -1,0 +1,82 @@
+{
+  "name": "aribnhasen-stack/saas-tenant",
+  "description": "Multi-tenant eCommerce SaaS platform with Bangladesh payment & delivery integrations",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": "^8.3",
+    "laravel/framework": "^11.0",
+    "laravel/tinker": "^2.9",
+    "laravel/sanctum": "^4.0",
+    "inertiajs/inertia-laravel": "^0.6",
+    "stancl/tenancy": "^3.8",
+    "mongodb/laravel-mongodb": "^7.3",
+    "laravel/scout": "^10.10",
+    "meilisearch/meilisearch-php": "^1.7",
+    "spatie/laravel-medialibrary": "^10.93",
+    "spatie/image": "^3.4",
+    "spatie/laravel-permission": "^6.8",
+    "spatie/laravel-translatable": "^6.6",
+    "spatie/laravel-activitylog": "^4.7",
+    "spatie/laravel-backup": "^8.5",
+    "guzzlehttp/guzzle": "^7.8",
+    "predis/predis": "^2.2",
+    "barryvdh/laravel-dompdf": "^2.1",
+    "doctrine/dbal": "^3.8",
+    "laravel/horizon": "^2.20",
+    "laravel/telescope": "^4.16"
+  },
+  "require-dev": {
+    "laravel/pint": "^1.14",
+    "pestphp/pest": "^2.34",
+    "pestphp/pest-plugin-laravel": "^2.34",
+    "laravel/sail": "^1.28"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "app/",
+      "Database\\Factories\\": "database/factories/",
+      "Database\\Seeders\\": "database/seeders/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Tests\\": "tests/"
+    }
+  },
+  "scripts": {
+    "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+      "@php artisan package:discover --ansi"
+    ],
+    "post-root-package-install": [
+      "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+    ],
+    "post-create-project-cmd": [
+      "@php artisan key:generate --ansi"
+    ],
+    "format": [
+      "@php vendor/bin/pint"
+    ],
+    "test": [
+      "@php vendor/bin/pest"
+    ]
+  },
+  "extra": {
+    "laravel": {
+      "dont-discover": [
+        "barryvdh/laravel-debugbar"
+      ]
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true,
+    "allow-plugins": {
+      "pestphp/pest-plugin": true
+    }
+  },
+  "minimum-stability": "stable",
+  "prefer-stable": true
+}
